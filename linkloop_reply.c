@@ -20,6 +20,7 @@
 #include <netinet/if_ether.h>
 #include <net/if.h>
 #include <sys/select.h>
+#include <time.h>
 #include "config.h"
 #include "linkloop.h"
 
@@ -37,6 +38,8 @@ u_int8_t	mac_src[IFHWADDRLEN];
 int main(int argc, char *argv[]) {
 	int sock;
 	size_t len;
+  time_t start;
+  time_t current;
 	struct llc_packet spack;
 	struct llc_packet rpack;
     int nif = argc -1; 	/* number of interfaces to listen */
@@ -64,9 +67,15 @@ int main(int argc, char *argv[]) {
 		get_hwaddr(sock, argv[i+1], mac_listened[i]);
 	}
 
+  start = time(NULL);
+  current = time(NULL);
+  printf("Difftime: %f\n", difftime(start, current));
 	/* listen and reply forever */
-	do {
+	while(difftime(start, current)<30) {
+    current = time(NULL);
+    printf("Difftime: %f\n", difftime(start, current));
 		len = recv_packet(sock, &rpack);
+    printf("%i bytes received\n", len);
 		memcpy(mac_src, rpack.eth_hdr.ether_shost, IFHWADDRLEN);
 		memcpy(mac_dst, rpack.eth_hdr.ether_dhost, IFHWADDRLEN);
 		
@@ -81,7 +90,8 @@ int main(int argc, char *argv[]) {
 			printf("Received packet on %s\n", argv[i+1]);
 			mk_test_packet(&spack, mac_dst, mac_src, len, 1);
 			send_packet(sock, argv[i+1], &spack);
+      return 0;
 		}
-	} while(1);
-	return 0;
+	}
+	return -1;
 }
